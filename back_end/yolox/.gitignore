@@ -1,0 +1,5 @@
+*.pth
+*.onnx
+*.tar.gz
+*.pt
+*.mge
