@@ -31,7 +31,7 @@ class YoloX:
 
     def decode(self, output, img_info, cls_conf=0.35):
         if output[0] is None:
-            return np.empty(shape=(0, 6))
+            return np.empty(shape=(0, 8))
 
         output = output[0].cpu().numpy()
         ratio = img_info["ratio"]

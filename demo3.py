@@ -7,6 +7,10 @@ from path import Path
 from back_end.yolox.detect import YoloX
 from back_end.pose_resnet.detect import PoseNet
 
+from hbu_services.fall_detector.detect import FallDetector
+from hbu_services.line_crossing.LineCrossing import LineCrossing
+from hbu_services.tracker.sort import Sort
+
 
 def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -14,6 +18,10 @@ def main():
     w_path = "back_end/yolox/yolox_m.pth"
     box_model = YoloX(device=device, weightsPath=w_path, num_classes=2, get_top2=False)
     pose_model = PoseNet(device=device)
+
+    hbu_lc = LineCrossing(line=[[50,50],[150,50]])  # todo definire linea con UI
+    fall_det = FallDetector(device=device)
+    tracker = Sort(max_age=1, min_hits=3)
 
     vidcap = cv2.VideoCapture("out.mp4")
 
