@@ -30,8 +30,8 @@ class LineCrossing:
         above = xp > 0
 
         if above:
-            self.waiting_tracks[track_id] = track_id
+            # self.waiting_tracks[track_id] = track_id
             return False
-        elif not above and track_id in self.waiting_tracks:
-            self.waiting_tracks.pop(track_id)
+        elif not above:# and track_id in self.waiting_tracks:
+            # self.waiting_tracks.pop(track_id)
             return True

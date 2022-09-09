@@ -107,7 +107,8 @@ class PoseNet:
 
             # pose estimation
             if len(pred_boxes) >= 1:
-                for box in pred_boxes:
+                for x1,y1,x2,y2 in pred_boxes:
+                    box = [(x1,y1), (x2,y2)]
                     center, scale = self.box_to_center_scale(box, self.cfg.MODEL.IMAGE_SIZE[0],
                                                              self.cfg.MODEL.IMAGE_SIZE[1])
                     centers.append(center)

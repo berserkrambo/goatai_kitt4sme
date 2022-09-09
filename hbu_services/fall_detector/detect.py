@@ -13,27 +13,41 @@ class FallDetector:
 
         self.fall_model = LinearModel()
         self.fall_model.to(self.device)
-        self.fall_model.load_state_dict(torch.load(self.model_path / "model" / "best.pth"))
+        self.fall_model.load_state_dict(torch.load(self.model_path / "model" / "best.pth")[0])
         self.fall_model.eval()
 
-    def predict(self, pose):
+        self.label_dict = {
+            0: "Standing",
+            1: "Sitting",
+            2: "Lying",
+            3: "Bending",
+            4: "Crawling"
+        }
+
+
+    def predict(self, poses):
         """
-        :param pose: 17x2 numpy array pose
+        :param poses: Nx17x2 numpy array pose
         :return: predicted label
         """
-        x_min, y_min, x_max, y_max = min(pose[:, 0]), min(pose[:, 1]), max(pose[:, 0]), max(pose[:, 1])
-        center = np.asarray([(x_min + x_max) / 2, (y_min + y_max) / 2], dtype=np.float32)
+        batch = []
+        for pose in poses:
+            x_min, y_min, x_max, y_max = min(pose[:, 0]), min(pose[:, 1]), max(pose[:, 0]), max(pose[:, 1])
+            center = np.asarray([(x_min + x_max) / 2, (y_min + y_max) / 2], dtype=np.float32)
 
-        pose_copy = np.copy(pose)
-        pose_copy -= center
+            pose_copy = np.copy(pose)
+            pose_copy -= center
 
-        r = min(1 / (x_max - x_min), 1 / (y_max - y_min))
-        pose_copy *= r
-        pose_copy += 0.5
+            r = min(1 / (x_max - x_min), 1 / (y_max - y_min))
+            pose_copy *= r
+            pose_copy += 0.5
 
-        x = torch.from_numpy(pose_copy.flatten('F'))
-        x = x.to(self.device)
-        y = self.fall_model(x)
+            batch.append(pose_copy.flatten('F'))
+
+        with torch.no_grad():
+            x = torch.from_numpy(np.asarray(batch, dtype=np.float32))
+            x = x.to(self.device)
+            y = self.fall_model(x)
 
         pred_label = np.argmax(y.cpu().numpy(), axis=1)
 

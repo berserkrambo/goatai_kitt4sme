@@ -1,27 +1,17 @@
 from __future__ import print_function
 
-import os
 
 import numpy as np
 
-
-import glob
-import time
-import argparse
 from filterpy.kalman import KalmanFilter
+from scipy.optimize import linear_sum_assignment
 
 np.random.seed(0)
 
 
 def linear_assignment(cost_matrix):
-    try:
-        import lap
-        _, x, y = lap.lapjv(cost_matrix, extend_cost=True)
-        return np.array([[y[i], i] for i in x if i >= 0])  #
-    except ImportError:
-        from scipy.optimize import linear_sum_assignment
-        x, y = linear_sum_assignment(cost_matrix)
-        return np.array(list(zip(x, y)))
+    x, y = linear_sum_assignment(cost_matrix)
+    return np.array(list(zip(x, y)))
 
 
 def iou_batch(bb_test, bb_gt):
@@ -104,10 +94,11 @@ class KalmanBoxTracker(object):
         self.hits = 0
         self.hit_streak = 0
         self.age = 0
-        self.obj_class = bbox[5]
+
         self.obj_class_conf = bbox[4]
-        self.obj_class_b = bbox[7]
-        self.obj_class_b_conf = bbox[6]
+        self.obj_mask = bbox[5]
+        self.obj_pose = bbox[6]
+        self.obj_pose_class = bbox[7]
 
         self.bottom_center_points = []
         self.movement = []
@@ -121,6 +112,10 @@ class KalmanBoxTracker(object):
         self.hits += 1
         self.hit_streak += 1
         self.kf.update(convert_bbox_to_z(bbox))
+        self.obj_class_conf = bbox[4]
+        self.obj_mask = bbox[5]
+        self.obj_pose = bbox[6]
+        self.obj_pose_class = bbox[7]
 
         self.bottom_center_points.append(np.asarray([(bbox[0] + bbox[2]) / 2, bbox[3]]))
         if len(self.bottom_center_points) > 1:
@@ -155,7 +150,7 @@ def associate_detections_to_trackers(detections, trackers, iou_threshold=0.3):
     Returns 3 lists of matches, unmatched_detections and unmatched_trackers
     """
     if (len(trackers) == 0):
-        return np.empty((0, 2), dtype=int), np.arange(len(detections)), np.empty((0, 8), dtype=int)
+        return np.empty((0, 2), dtype=int), np.arange(len(detections)), np.empty((0, 4), dtype=int)
 
     iou_matrix = iou_batch(detections, trackers)
 
@@ -208,25 +203,25 @@ class Sort(object):
         """
         Params:
           dets - a numpy array of detections in the format [[x1,y1,x2,y2,score],[x1,y1,x2,y2,score],...]
-        Requires: this method must be called once for each frame even with empty detections (use np.empty((0, 5)) for frames without detections).
+        Requires: this method must be called once for each frame even with empty detections (use np.empty((0, 8)) for frames without detections).
         Returns the a similar array, where the last column is the object ID.
 
         NOTE: The number of objects returned may differ from the number of detections provided.
         """
         self.frame_count += 1
         # get predicted locations from existing trackers.
-        trks = np.zeros((len(self.trackers), 8))
+        trks = np.zeros((len(self.trackers), 4))
         to_del = []
         ret = []
         for t, trk in enumerate(trks):
             pos = self.trackers[t].predict()[0]
-            trk[:] = [pos[0], pos[1], pos[2], pos[3], 0, 0, 0, 0]
+            trk[:] = [pos[0], pos[1], pos[2], pos[3]]
             if np.any(np.isnan(pos)):
                 to_del.append(t)
         trks = np.ma.compress_rows(np.ma.masked_invalid(trks))
         for t in reversed(to_del):
             self.trackers.pop(t)
-        matched, unmatched_dets, unmatched_trks = associate_detections_to_trackers(dets, trks, self.iou_threshold)
+        matched, unmatched_dets, unmatched_trks = associate_detections_to_trackers(np.asarray(dets[:,:4], dtype=np.float32), trks, self.iou_threshold)
 
         # update matched trackers with assigned detections
         for m in matched:
@@ -241,13 +236,13 @@ class Sort(object):
             d = trk.get_state()[0]
             # if (trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits):
             if (trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits):
-                ret.append(np.concatenate((d, [trk.id + 1],
-                                           [trk.obj_class], [trk.obj_class_conf], [trk.obj_class_b], [trk.obj_class_b_conf]
-                                           , [np.mean(trk.movement)])).reshape(1,-1))  # +1 as MOT benchmark requires positive
+                ret.append(np.asarray([d, trk.id + 1,
+                                           trk.obj_class_conf, trk.obj_mask, trk.obj_pose, trk.obj_pose_class,
+                                           np.mean(trk.movement)], dtype=object))
             i -= 1
             # remove dead tracklet
             if (trk.time_since_update > self.max_age):
                 self.trackers.pop(i)
         if (len(ret) > 0):
-            return np.concatenate(ret)
-        return np.empty((0, 10))
+            return np.asarray(ret, dtype=object)
+        return np.empty((0, 7))
