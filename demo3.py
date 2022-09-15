@@ -25,6 +25,8 @@ class AI4SDW:
         self.save_video = save_video
         self.show_output = show_output
 
+        #todo assert linecrossing and tracker
+
         self.no_fall_detector = no_fall_detector
         self.no_tracker = no_tracker
         self.no_line_crossing = no_line_crossing
