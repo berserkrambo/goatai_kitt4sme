@@ -4,6 +4,8 @@ import cv2
 import torch
 from path import Path
 
+import click
+
 from back_end.yolox.detect import YoloX
 from back_end.pose_resnet.detect import PoseNet, SKELETON
 
@@ -13,120 +15,152 @@ from hbu_services.tracker.sort import Sort
 
 from back_end.yalact.detect import Yalact
 
+from back_end.video_stream_reader import VStreamReader
+from back_end.video_stream_writer import VStreamWriter
 
-def main():
-    colors = [[h, int(100 * 2.55), int(100 * 2.55)] for h in range(0, 180, 4)]
 
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+class AI4SDW:
+    def __init__(self, video_path, save_video, show_output, no_fall_detector, no_tracker, no_line_crossing):
+        self.video_path = video_path
+        self.save_video = save_video
+        self.show_output = show_output
 
-    # w_path = "back_end/yolox/yolox_m.pth"
-    # box_model = YoloX(device=device, weightsPath=w_path, num_classes=2, get_top2=False)
-    box_model = Yalact(device=device)
-    pose_model = PoseNet(device=device)
+        self.no_fall_detector = no_fall_detector
+        self.no_tracker = no_tracker
+        self.no_line_crossing = no_line_crossing
+        self.colors = [[h, int(100 * 2.55), int(100 * 2.55)] for h in range(0, 180, 4)]
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        print(self.device)
 
-    line = [[0, 359], [1279, 159]]
-    hbu_lc = LineCrossing(line=line)  # todo definire linea con UI
-    fall_det = FallDetector(device=device)
-    tracker = Sort(max_age=1, min_hits=3)
+        # w_path = "back_end/yolox/yolox_m.pth"
+        # box_model = YoloX(device=device, weightsPath=w_path, num_classes=2, get_top2=False)
+        self.box_model = Yalact(device=self.device)
+        self.pose_model = PoseNet(device=self.device)
 
-    vidcap = cv2.VideoCapture("out2.mp4")
-    ret, image_bgr = vidcap.read()
+        self.line = [[0, 359], [1279, 159]]
+        self.hbu_lc = LineCrossing(line=self.line)  # todo definire linea con UI
+        self.fall_det = FallDetector(device=self.device)
+        self.tracker = Sort(max_age=1, min_hits=3)
 
-    h, w = image_bgr.shape[:2]
-    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    writer = cv2.VideoWriter("test.avi", fourcc, vidcap.get(cv2.CAP_PROP_FPS), (w, h))
 
-    while ret:
+    def run(self):
 
-        last_time = time.time()
+        self.vidcap = VStreamReader(self.video_path)
 
-        img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        if self.save_video:
+            dest_video = self.video_path.replace(".avi", "_result.avi").replace(".mp4", "_result.avi")
+            self.writer = VStreamWriter(dest_video, "xvid", self.vidcap.fps, self.vidcap.frame_shape_wh)
 
-        ids_p, pred_boxes, class_p, masks_p = box_model.predict(image_bgr.copy())
-        pose_preds = pose_model.predict(img, pred_boxes)
-        pose_class = fall_det.predict(pose_preds)
+        ret, image_bgr = self.vidcap.get_next_frame()
 
-        # set shape for tracker
-        if len(pred_boxes) >= 1:
-            # image_bgr = box_model.drawo_pred(ids_p, class_p, pred_boxes, masks_p, image_bgr) # todo comment this one
+        while ret:
+            last_time = time.time()
 
-            out = []
-            for i in range(len(pred_boxes)):
-                o_i = []
-                o_i.extend(pred_boxes[i].astype(np.float32))    # bbox
-                o_i.extend([class_p[i]])                        # conf
-                o_i.extend(np.expand_dims(masks_p[i], 0))       # mask
-                o_i.extend([pose_preds[i].astype(np.int32)])                      # pose
-                o_i.extend([pose_class[i]])                     # pose class
-                o_i = np.asarray(o_i, dtype=object)
-                out.append(o_i)
-            pred_boxes = np.asarray(out, dtype=object)
+            img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
-        #  todo comment draw fun
-        # if len(pose_preds) >= 1:
-        #     for kpt in pose_preds:
-        #         pose_model.draw_pose(kpt, image_bgr)  # draw the poses
+            ids_p, pred_boxes, class_p, masks_p = self.box_model.predict(image_bgr.copy())
+            pose_preds = self.pose_model.predict(img, pred_boxes)
+            pose_class = self.fall_det.predict(pose_preds)
 
-        outputs_ = tracker.update(np.copy(pred_boxes))
-        s1, s2 = outputs_.shape
-        outputs = np.empty(shape=(s1, s2 + 1), dtype=object)
-        outputs[:, :-1] = outputs_[:]
-        for obi, obj in enumerate(outputs_):
-            track_id = obj[1]
-            x1, y1, x2, y2 = obj[0]
-            bottom_center = np.asarray([(x1 + x2) / 2, y2], dtype=np.int32)
-            crossed = hbu_lc.update(bottom_center, track_id)
-            outputs[obi, -1] = crossed
+            # set shape for tracker
+            if len(pred_boxes) >= 1:
+                # image_bgr = box_model.drawo_pred(ids_p, class_p, pred_boxes, masks_p, image_bgr) # todo comment this one
+                out = []
+                for i in range(len(pred_boxes)):
+                    o_i = []
+                    o_i.extend(pred_boxes[i].astype(np.float32))  # bbox
+                    o_i.extend([class_p[i]])  # conf
+                    o_i.extend(np.expand_dims(masks_p[i], 0))  # mask
+                    o_i.extend([pose_preds[i].astype(np.int32)])  # pose
+                    o_i.extend([pose_class[i]])  # pose class
+                    o_i = np.asarray(o_i, dtype=object)
+                    out.append(o_i)
+                pred_boxes = np.asarray(out, dtype=object)
 
-        ######## drawing session #################
+            #  todo comment draw fun
+            # if len(pose_preds) >= 1:
+            #     for kpt in pose_preds:
+            #         pose_model.draw_pose(kpt, image_bgr)  # draw the poses
 
-        masked_img = image_bgr.copy()
-        for dets, track_id, confs, mask, pose, pose_class, speed, crossed in outputs:
-            color = colors[track_id % len(colors)]
-            color[1] = int(50 * 2.55)
-            color2_rgb = cv2.cvtColor(np.asarray([[color]], dtype='uint8'), cv2.COLOR_HSV2BGR)[0][0]
+            outputs_ = self.tracker.update(np.copy(pred_boxes))
+            s1, s2 = outputs_.shape
+            outputs = np.empty(shape=(s1, s2 + 1), dtype=object)
+            outputs[:, :-1] = outputs_[:]
+            for obi, obj in enumerate(outputs_):
+                track_id = obj[1]
+                x1, y1, x2, y2 = obj[0]
+                bottom_center = np.asarray([(x1 + x2) / 2, y2], dtype=np.int32)
+                crossed = self.hbu_lc.update(bottom_center, track_id)
+                outputs[obi, -1] = crossed
 
-            masked_img = np.where(mask[..., None], color2_rgb, masked_img)
-        image_bgr = cv2.addWeighted(image_bgr, 0.6, masked_img, 0.4, 0)
+                ######## drawing session #################
+            if self.save_video or self.show_output:
+                masked_img = image_bgr.copy()
+                for dets, track_id, confs, mask, pose, pose_class, speed, crossed in outputs:
+                    color = self.colors[track_id % len(self.colors)]
+                    color[1] = int(50 * 2.55)
+                    color2_rgb = cv2.cvtColor(np.asarray([[color]], dtype='uint8'), cv2.COLOR_HSV2BGR)[0][0]
 
-        for dets, track_id, confs, mask, pose, pose_class, speed, crossed in outputs:
-            color = colors[track_id % len(colors)]
+                    masked_img = np.where(mask[..., None], color2_rgb, masked_img)
+                image_bgr = cv2.addWeighted(image_bgr, 0.6, masked_img, 0.4, 0)
 
-            x1, y1, x2, y2 = dets.astype(np.int32)
-            color1_rgb = cv2.cvtColor(np.asarray([[color]], dtype='uint8'), cv2.COLOR_HSV2BGR)[0][0]
+                for dets, track_id, confs, mask, pose, pose_class, speed, crossed in outputs:
+                    color = self.colors[track_id % len(self.colors)]
 
-            cv2.rectangle(image_bgr, (x1, y1), (x2, y2), color1_rgb.tolist(), 2)
-            cv2.putText(image_bgr, f"{fall_det.label_dict[pose_class]}", (x1, y1 - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
-                        [0, 127, 255], 2)
-            cv2.putText(image_bgr, f"{track_id}", (int((x1 + x2) / 2), int((y1 + y2) / 2)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, [50, 50, 50], 2)
+                    x1, y1, x2, y2 = dets.astype(np.int32)
+                    color1_rgb = cv2.cvtColor(np.asarray([[color]], dtype='uint8'), cv2.COLOR_HSV2BGR)[0][0]
 
-            bottom_center = np.asarray([(x1 + x2) / 2, y2], dtype=np.int32)
-            cv2.circle(image_bgr, bottom_center, 4, [0,0,255] if crossed else [255,0,0], -1)
+                    cv2.rectangle(image_bgr, (x1, y1), (x2, y2), color1_rgb.tolist(), 2)
+                    cv2.putText(image_bgr, f"{self.fall_det.label_dict[pose_class]}", (x1, y1 - 2), cv2.FONT_HERSHEY_SIMPLEX,
+                                0.6,
+                                [0, 127, 255], 2)
+                    cv2.putText(image_bgr, f"{track_id}", (int((x1 + x2) / 2), int((y1 + y2) / 2)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, [50, 50, 50], 2)
 
-            # for jt in pose:
-            #     cv2.circle(image_bgr, jt, 1, [70,60,60], -1)
-            for ln in SKELETON[4:]:
-                cv2.line(image_bgr, pose[ln[0]], pose[ln[1]], [180, 180, 180], 2)
+                    bottom_center = np.asarray([(x1 + x2) / 2, y2], dtype=np.int32)
+                    cv2.circle(image_bgr, bottom_center, 4, [0, 0, 255] if crossed else [255, 0, 0], -1)
 
-        cv2.line(image_bgr, line[0], line[1], [0, 0, 150], 1)
+                    # for jt in pose:
+                    #     cv2.circle(image_bgr, jt, 1, [70,60,60], -1)
+                    for ln in SKELETON[4:]:
+                        cv2.line(image_bgr, pose[ln[0]], pose[ln[1]], [180, 180, 180], 2)
 
-        ######## drawing session #################
+                cv2.line(image_bgr, self.line[0], self.line[1], [0, 0, 150], 1)
 
-        fps = 1 / (time.time() - last_time)
-        # cv2.putText(image_bgr, 'fps: ' + "%.2f" % (fps), (25, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
+                ######## drawing session #################
 
-        writer.write(image_bgr)
-        cv2.imshow('demo', image_bgr)
+            fps = 1 / (time.time() - last_time)
+            print(f"\rFPS: {fps:.02f}", end='')
 
-        if cv2.waitKey(1) & 0XFF == ord('q'):
-            break
+            if self.save_video:
+                self.writer.write(image_bgr)
 
-        ret, image_bgr = vidcap.read()
+            if self.show_output:
+                cv2.imshow('demo', image_bgr)
+                if cv2.waitKey(1) & 0XFF == ord('q'):
+                    break
 
-    cv2.destroyAllWindows()
-    vidcap.release()
-    writer.release()
+            ret, image_bgr = self.vidcap.get_next_frame()
+
+        if self.save_video:
+            self.writer.stop()
+
+        if self.show_output:
+            cv2.destroyAllWindows()
+
+        self.vidcap.stop()
+
+
+@click.command()
+@click.option('--video_path', type=str, default=None)
+@click.option('--save_video', is_flag=True)
+@click.option('--show_output', is_flag=True)
+@click.option('--no_fall_detector', is_flag=True)
+@click.option('--no_tracker', is_flag=True)
+@click.option('--no_line_crossing', is_flag=True)
+def main(video_path, save_video, show_output, no_fall_detector, no_tracker, no_line_crossing):
+    ai4sdw = AI4SDW(video_path=video_path, save_video=save_video, show_output=show_output, no_fall_detector=no_fall_detector, no_tracker=no_tracker, no_line_crossing=no_line_crossing)
+    ai4sdw.run()
 
 if __name__ == '__main__':
     main()
