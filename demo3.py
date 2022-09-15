@@ -12,6 +12,7 @@ from back_end.pose_resnet.detect import PoseNet, SKELETON
 from hbu_services.fall_detector.detect import FallDetector
 from hbu_services.line_crossing.LineCrossing import LineCrossing
 from hbu_services.tracker.sort import Sort
+from hbu_services.anonymizator.anonymize import anonymize
 
 from back_end.yalact.detect import Yalact
 
@@ -43,7 +44,6 @@ class AI4SDW:
         self.hbu_lc = LineCrossing(line=self.line)  # todo definire linea con UI
         self.fall_det = FallDetector(device=self.device)
         self.tracker = Sort(max_age=1, min_hits=3)
-
 
     def run(self):
 
@@ -94,6 +94,10 @@ class AI4SDW:
                 bottom_center = np.asarray([(x1 + x2) / 2, y2], dtype=np.int32)
                 crossed = self.hbu_lc.update(bottom_center, track_id)
                 outputs[obi, -1] = crossed
+
+            # anonymization module
+            if len(outputs) > 0:
+                image_bgr = anonymize(image_bgr, outputs[:,0].copy(), outputs[:,3].copy(), outputs[:,4].copy())
 
                 ######## drawing session #################
             if self.save_video or self.show_output:
