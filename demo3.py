@@ -21,16 +21,12 @@ from back_end.video_stream_writer import VStreamWriter
 
 
 class AI4SDW:
-    def __init__(self, video_path, save_video, show_output, no_fall_detector, no_tracker, no_line_crossing):
+    def __init__(self, video_path, save_video, show_output, plot):
         self.video_path = video_path
         self.save_video = save_video
         self.show_output = show_output
 
-        #todo assert linecrossing and tracker
-
-        self.no_fall_detector = no_fall_detector
-        self.no_tracker = no_tracker
-        self.no_line_crossing = no_line_crossing
+        self.plot = plot
         self.colors = [[h, int(100 * 2.55), int(100 * 2.55)] for h in range(0, 180, 4)]
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         print(self.device)
@@ -40,10 +36,10 @@ class AI4SDW:
         self.box_model = Yalact(device=self.device)
         self.pose_model = PoseNet(device=self.device)
 
-        self.line = [[0, 359], [1279, 159]]
+        self.line = [[320, 210], [480, 410]]
         self.hbu_lc = LineCrossing(line=self.line)  # todo definire linea con UI
         self.fall_det = FallDetector(device=self.device)
-        self.tracker = Sort(max_age=1, min_hits=3)
+        self.tracker = Sort(max_age=60, min_hits=3)
 
     def run(self):
 
@@ -100,7 +96,8 @@ class AI4SDW:
                 image_bgr = anonymize(image_bgr, outputs[:,0].copy(), outputs[:,3].copy(), outputs[:,4].copy())
 
                 ######## drawing session #################
-            if self.save_video or self.show_output:
+
+            if "mask" in self.plot:
                 masked_img = image_bgr.copy()
                 for dets, track_id, confs, mask, pose, pose_class, speed, crossed in outputs:
                     color = self.colors[track_id % len(self.colors)]
@@ -110,27 +107,31 @@ class AI4SDW:
                     masked_img = np.where(mask[..., None], color2_rgb, masked_img)
                 image_bgr = cv2.addWeighted(image_bgr, 0.6, masked_img, 0.4, 0)
 
-                for dets, track_id, confs, mask, pose, pose_class, speed, crossed in outputs:
-                    color = self.colors[track_id % len(self.colors)]
+            for dets, track_id, confs, mask, pose, pose_class, speed, crossed in outputs:
+                color = self.colors[track_id % len(self.colors)]
+                color1_rgb = cv2.cvtColor(np.asarray([[color]], dtype='uint8'), cv2.COLOR_HSV2BGR)[0][0]
 
-                    x1, y1, x2, y2 = dets.astype(np.int32)
-                    color1_rgb = cv2.cvtColor(np.asarray([[color]], dtype='uint8'), cv2.COLOR_HSV2BGR)[0][0]
+                x1, y1, x2, y2 = dets.astype(np.int32)
 
+                if "box" in self.plot:
                     cv2.rectangle(image_bgr, (x1, y1), (x2, y2), color1_rgb.tolist(), 2)
+
+                if "pose_class" in self.plot:
                     cv2.putText(image_bgr, f"{self.fall_det.label_dict[pose_class]}", (x1, y1 - 2), cv2.FONT_HERSHEY_SIMPLEX,
                                 0.6,
                                 [0, 127, 255], 2)
+
+                if "track" in self.plot:
                     cv2.putText(image_bgr, f"{track_id}", (int((x1 + x2) / 2), int((y1 + y2) / 2)),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, [50, 50, 50], 2)
-
                     bottom_center = np.asarray([(x1 + x2) / 2, y2], dtype=np.int32)
                     cv2.circle(image_bgr, bottom_center, 4, [0, 0, 255] if crossed else [255, 0, 0], -1)
 
-                    # for jt in pose:
-                    #     cv2.circle(image_bgr, jt, 1, [70,60,60], -1)
+                if "pose" in self.plot:
                     for ln in SKELETON[4:]:
                         cv2.line(image_bgr, pose[ln[0]], pose[ln[1]], [180, 180, 180], 2)
 
+            if "line" in self.plot:
                 cv2.line(image_bgr, self.line[0], self.line[1], [0, 0, 150], 1)
 
                 ######## drawing session #################
@@ -161,14 +162,13 @@ class AI4SDW:
 @click.option('--video_path', type=str, default=None)
 @click.option('--save_video', is_flag=True)
 @click.option('--show_output', is_flag=True)
-@click.option('--no_fall_detector', is_flag=True)
-@click.option('--no_tracker', is_flag=True)
-@click.option('--no_line_crossing', is_flag=True)
-def main(video_path, save_video, show_output, no_fall_detector, no_tracker, no_line_crossing):
-    ai4sdw = AI4SDW(video_path=video_path, save_video=save_video, show_output=show_output, no_fall_detector=no_fall_detector, no_tracker=no_tracker, no_line_crossing=no_line_crossing)
+@click.option('--plot', "-p", multiple=True, default=["box", "mask", "pose", "pose_class", "track", "line"])
+@click.option('--no_plot', is_flag=True)
+def main(video_path, save_video, show_output, plot, no_plot):
+    if no_plot:
+        plot = [""]
+    ai4sdw = AI4SDW(video_path=video_path, save_video=save_video, show_output=show_output, plot=plot)
     ai4sdw.run()
 
 if __name__ == '__main__':
     main()
-
-#
