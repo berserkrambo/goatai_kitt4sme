@@ -47,6 +47,8 @@ class AI4SDW:
 
         if self.save_video:
             dest_video = self.video_path.replace(".avi", "_result.avi").replace(".mp4", "_result.avi")
+            if Path(dest_video).exists():
+                dest_video = dest_video.replace(".avi", "0.avi")
             self.writer = VStreamWriter(dest_video, "xvid", self.vidcap.fps, self.vidcap.frame_shape_wh)
 
         ret, image_bgr = self.vidcap.get_next_frame()
