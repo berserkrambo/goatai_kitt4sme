@@ -21,10 +21,11 @@ from back_end.video_stream_writer import VStreamWriter
 
 
 class AI4SDW:
-    def __init__(self, video_path, save_video, show_output, plot):
+    def __init__(self, video_path, save_video, show_output, plot, save_detections):
         self.video_path = video_path
         self.save_video = save_video
         self.show_output = show_output
+        self.save_detections = save_detections
 
         self.plot = plot
         self.colors = [[h, int(100 * 2.55), int(100 * 2.55)] for h in range(0, 180, 4)]
@@ -52,6 +53,7 @@ class AI4SDW:
             self.writer = VStreamWriter(dest_video, "xvid", self.vidcap.fps, self.vidcap.frame_shape_wh)
 
         ret, image_bgr = self.vidcap.get_next_frame()
+        to_save = []
 
         while ret:
             last_time = time.time()
@@ -77,7 +79,6 @@ class AI4SDW:
                     out.append(o_i)
                 pred_boxes = np.asarray(out, dtype=object)
 
-            #  todo comment draw fun
             # if len(pose_preds) >= 1:
             #     for kpt in pose_preds:
             #         pose_model.draw_pose(kpt, image_bgr)  # draw the poses
@@ -86,6 +87,10 @@ class AI4SDW:
             s1, s2 = outputs_.shape
             outputs = np.empty(shape=(s1, s2 + 1), dtype=object)
             outputs[:, :-1] = outputs_[:]
+
+            if self.save_detections:
+                to_save.append(outputs)
+
             for obi, obj in enumerate(outputs_):
                 track_id = obj[1]
                 x1, y1, x2, y2 = obj[0]
@@ -159,6 +164,11 @@ class AI4SDW:
 
         self.vidcap.stop()
 
+        if self.save_detections:
+            to_save = np.asarray(to_save, dtype=object)
+            dest_file = self.video_path[:-3] + "npz"
+            np.savez_compressed(dest_file, to_save)
+
 
 @click.command()
 @click.option('--video_path', type=str, default=None)
@@ -166,10 +176,11 @@ class AI4SDW:
 @click.option('--show_output', is_flag=True)
 @click.option('--plot', "-p", multiple=True, default=["box", "mask", "pose", "pose_class", "track", "line"])
 @click.option('--no_plot', is_flag=True)
-def main(video_path, save_video, show_output, plot, no_plot):
+@click.option('--save_detections', is_flag=True)
+def main(video_path, save_video, show_output, plot, no_plot, save_detections):
     if no_plot:
         plot = [""]
-    ai4sdw = AI4SDW(video_path=video_path, save_video=save_video, show_output=show_output, plot=plot)
+    ai4sdw = AI4SDW(video_path=video_path, save_video=save_video, show_output=show_output, plot=plot, save_detections=save_detections)
     ai4sdw.run()
 
 if __name__ == '__main__':
