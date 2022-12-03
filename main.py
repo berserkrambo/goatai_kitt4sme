@@ -7,8 +7,7 @@ from back_end_logic import AI4SDW
 from back_end.video_stream_reader import VStreamReader
 from back_end.video_stream_writer import VStreamWriter
 from utils import draw_on_image
-
-
+from kitt4sme_utils import ngsy
 
 
 @click.command()
@@ -34,19 +33,28 @@ def main(video_path, save_video, show_output, plot, no_plot, save_detections):
 
     while True:
         ret, image_bgr = vidcap.get_next_frame()
-        anonymized_image, outputs = ai4sdw.process_next_frame(image_bgr)
+
+        if ret:
+            anonymized_image, outputs = ai4sdw.process_next_frame(image_bgr)
+
+            if len(outputs) > 0:
+                if not no_plot:
+                    draw_on_image(image_bgr, plot, outputs)
+
+                # leggi conf
+                # sistema bbox per invio
+                # ngsy.send()
 
         time.sleep(1/30)
         k = cv2.waitKey(1)
 
-        if k == ord('q') or k == 27:
+        if k == ord('q') or k == 27 or (not ret):
+            print("stop")
             break
-
-        print("stop")
 
 
 if __name__ == '__main__':
     main()
 
-    #todo manda via ngsy
-    #leggi calib file
+    # todo manda via ngsy
+    # leggi calib file

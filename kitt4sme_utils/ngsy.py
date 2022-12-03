@@ -1,5 +1,5 @@
 from fipy.ngsi.entity import BaseEntity, FloatAttr, TextAttr, BoolAttr, ArrayAttr
-
+from kitt4sme_utils.fiware import orion_client
 
 class WorkerEntity(BaseEntity):
     """
@@ -21,15 +21,16 @@ class WorkerEntity(BaseEntity):
     # frame: ArrayAttr
 
 def send(worker_id, nowalk_area, boxes, poses, e_b_t, area_capacity, service):
-    # orion = orion_client()
-    # orion.upsert_entities([data])
+    orion = orion_client()
 
     to_send = WorkerEntity(
-                    id=conf["WORKER_ID"],
-                    area=ArrayAttr.new(area),
+                    id=worker_id,
+                    area=ArrayAttr.new(nowalk_area),
                     bboxes=ArrayAttr.new(boxes),
-                    poses=ArrayAttr.new(pose),
-                    e_b_t=ArrayAttr.new([1, 3, 1]),
-                    area_capacity=FloatAttr.new(5),
-                    service_type=TextAttr.new("all")
+                    poses=ArrayAttr.new(poses),
+                    e_b_t=ArrayAttr.new(e_b_t),
+                    area_capacity=FloatAttr.new(area_capacity),
+                    service_type=TextAttr.new(service)
                 )
+
+    orion.upsert_entities([to_send])
