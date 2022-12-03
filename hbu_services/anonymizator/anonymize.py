@@ -2,6 +2,13 @@ import numpy as np
 import cv2
 
 def anonymize(img, boxes, masks, poses):
+    """
+    :param img: image to anonymize
+    :param boxes: object bbox coords
+    :param masks: object segmentation mask
+    :param poses: object pose
+    :return: image
+    """
     assert len(boxes) == len(masks) == len(poses)
 
     h,w = img.shape[:2]
