@@ -1,3 +1,4 @@
+import yaml
 import cv2
 import numpy as np
 
@@ -15,9 +16,11 @@ def rescale_point(point, scale):
 
 class LineSelector(object):
 
-    def __init__(self, video_path, win_name):
+    def __init__(self, video_path, out_calib_file, win_name="calibration session"):
         self.cap = cv2.VideoCapture(video_path)
         assert self.cap.isOpened(), f"cap not opened for {video_path}"
+        self.out_calib_file = out_calib_file
+
         _, self.background = self.cap.read()
         self.frame = self.background.copy()
 
@@ -156,6 +159,10 @@ class LineSelector(object):
                 self.next_frame()
 
         cv2.destroyWindow(self.win_name)
+
+        with open(self.out_calib_file, 'w') as out_file:
+            yaml.dump(self.out_dict, out_file)
+
         return self.out_dict
 
     def __del__(self):
@@ -163,7 +170,7 @@ class LineSelector(object):
 
 
 def demo():
-    od = LineSelector(video_path='resources/MOT20-02-raw-cut.mp4', win_name='GUI for points initialization').run()
+    od = LineSelector(video_path='resources/sample_03.mp4', out_calib_file="conf/calib.yaml", win_name='GUI for points initialization').run()
     print(od)
 
 

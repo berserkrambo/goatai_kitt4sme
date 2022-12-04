@@ -39,3 +39,8 @@ GRID_SCALE: 1.0
 
 # worker unique id inside k4sme platform, make that all worker has different unique id
 WORKER_ID: 1
+
+# AI service to ask for --> all, [line_crossing, fall_detection, pandemic_monitoring]
+SERVICE: all
+
+VIDEO_PATH: resources/sample_03.mp4

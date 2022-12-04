@@ -20,17 +20,20 @@ class WorkerEntity(BaseEntity):
     service_type: TextAttr
     # frame: ArrayAttr
 
-def send(worker_id, nowalk_area, boxes, poses, e_b_t, area_capacity, service):
+def send(cnf, data):
     orion = orion_client()
 
+    boxes = []
+    poses = []
+
     to_send = WorkerEntity(
-                    id=worker_id,
-                    area=ArrayAttr.new(nowalk_area),
+                    id=cnf.worker_id,
+                    area=ArrayAttr.new(cnf.nowalk_area),
                     bboxes=ArrayAttr.new(boxes),
                     poses=ArrayAttr.new(poses),
-                    e_b_t=ArrayAttr.new(e_b_t),
-                    area_capacity=FloatAttr.new(area_capacity),
-                    service_type=TextAttr.new(service)
+                    e_b_t=ArrayAttr.new([cnf.eta, cnf.beta, cnf.tau]),
+                    area_capacity=FloatAttr.new(cnf.area_capacity),
+                    service_type=TextAttr.new(cnf.service)
                 )
 
     orion.upsert_entities([to_send])

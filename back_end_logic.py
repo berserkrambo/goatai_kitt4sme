@@ -94,4 +94,5 @@ class AI4SDW:
         #     dest_file = self.video_path[:-3] + "npz"
         #     np.savez_compressed(dest_file, to_save)
 
+
         return image_bgr, outputs
