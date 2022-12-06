@@ -8,7 +8,7 @@ TAU: 1
 
 # global risk evaluation parameters:
 ##### what is the maximum number of people that the monitored area should host?
-AREA_CAPACITY: 4
+AREA_CAPACITY: 5
 
 # default matrix point in the real world used to find the homography transformation matrix
 # [ [ (-1, -1), (0, -1), (1, -1) ]

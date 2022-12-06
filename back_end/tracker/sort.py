@@ -98,7 +98,7 @@ class KalmanBoxTracker(object):
         # self.obj_class_conf = bbox[4]
         self.obj_mask = bbox[5]
         self.obj_pose = bbox[6]
-        # self.obj_pose_class = bbox[7]
+        self.obj_pose_class = bbox[7]
 
         # self.bottom_center_points = []
         # self.movement = []
@@ -115,7 +115,7 @@ class KalmanBoxTracker(object):
         # self.obj_class_conf = bbox[4]
         self.obj_mask = bbox[5]
         self.obj_pose = bbox[6]
-        # self.obj_pose_class = bbox[7]
+        self.obj_pose_class = bbox[7]
 
         # self.bottom_center_points.append(np.asarray([(bbox[0] + bbox[2]) / 2, bbox[3]]))
         # if len(self.bottom_center_points) > 1:
@@ -199,11 +199,11 @@ class Sort(object):
         self.trackers = []
         self.frame_count = 0
 
-    def update(self, dets=np.empty((0, 7))):
+    def update(self, dets=np.empty((0, 8))):
         """
         Params:
           dets - a numpy array of detections in the format [[x1,y1,x2,y2,score],[x1,y1,x2,y2,score],...]
-        Requires: this method must be called once for each frame even with empty detections (use np.empty((0, 7)) for frames without detections).
+        Requires: this method must be called once for each frame even with empty detections (use np.empty((0, 8)) for frames without detections).
         Returns the a similar array, where the last column is the object ID.
 
         NOTE: The number of objects returned may differ from the number of detections provided.
@@ -236,11 +236,11 @@ class Sort(object):
             d = trk.get_state()[0]
             # if (trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits):
             if (trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits):
-                ret.append(np.asarray([d, trk.id + 1, trk.obj_mask, trk.obj_pose], dtype=object))
+                ret.append(np.asarray([d, trk.id + 1, trk.obj_mask, trk.obj_pose, trk.obj_pose_class], dtype=object))
             i -= 1
             # remove dead tracklet
             if (trk.time_since_update > self.max_age):
                 self.trackers.pop(i)
         if (len(ret) > 0):
             return np.asarray(ret, dtype=object)
-        return np.empty((0, 7))
+        return np.empty((0, 8))

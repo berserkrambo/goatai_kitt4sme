@@ -11,7 +11,7 @@ from kitt4sme_utils import ngsy
 from fipy.docker import DockerCompose
 
 from kitt4sme_utils.fiware import wait_on_orion, create_subscriptions
-
+import numpy as np
 
 docker = DockerCompose(__file__)
 
@@ -44,6 +44,7 @@ def main(plot, compose):
         except:
             docker.stop()
 
+    nowalk = np.asarray(cnf.nowalk_area, dtype='int32').reshape((-1, 2))
     while True:
         ret, image_bgr = vidcap.get_next_frame()
 
@@ -51,11 +52,13 @@ def main(plot, compose):
             anonymized_image, outputs = ai4sdw.process_next_frame(image_bgr)
 
             if len(outputs) > 0:
-                draw_on_image(image_bgr, plot, outputs)
-                cv2.imshow("", image_bgr)
-                ngsy.send(cnf=cnf, data=outputs[:])
 
-        time.sleep(1/30)
+                draw_on_image(image_bgr, plot, outputs)
+                cv2.polylines(image_bgr, [nowalk], True, [255,0,0])
+                cv2.imshow("", image_bgr)
+
+                ngsy.send(cnf=cnf, data=outputs[:], frame=image_bgr)
+
         k = cv2.waitKey(1)
 
         if k == ord('q') or k == 27 or (not ret):

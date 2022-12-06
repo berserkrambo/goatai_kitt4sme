@@ -31,7 +31,7 @@ class AI4SDW_services(BaseEntity):
     fall_pred: Optional[BoolAttr]
     risk_leve: Optional[FloatAttr]
 
-def send(cnf, data):
+def send(cnf, data, frame):
     """
     :param cnf: configuration file from witch get info like about worker id and area
     :param data: list of objects, every one contains dets, track_id, mask, pose
@@ -42,11 +42,10 @@ def send(cnf, data):
     boxes = []
     poses = []
 
-    for dets, track_id, mask, pose in data:
-        bb = dets.reshape(-1).tolist()
-        xy_center = [(bb[0] + bb[2]) / 2, bb[3]]
-        bb.extend(xy_center)
-        boxes.extend(bb)
+    for dets, track_id, mask, pose, pose_class in data:
+        x1, y1, x2, y2 = dets
+        xy_center = [(x1+x2)/2, y2]
+        boxes.extend(xy_center)
         poses.extend(pose.reshape(-1).tolist())
 
     assert boxes.__len__() % 2 == 0 and poses.__len__() % 34 == 0, "somethings wrong with data conversion for kitt4sme platform"
