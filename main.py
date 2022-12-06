@@ -41,7 +41,6 @@ def main(plot, compose):
         docker.stop()
         try:
             bootstrap()
-            services_running = True
         except:
             docker.stop()
 
