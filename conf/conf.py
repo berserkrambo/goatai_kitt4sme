@@ -71,6 +71,6 @@ class Conf(object):
         calib_file = open(self.calib_file_path, 'r')
         yc = yaml.load(calib_file, Loader=yaml.Loader)
         self.src_points = np.asarray(yc.get("homo_polygon"), dtype='float')
-        self.nowalk_points = np.asarray(yc.get("nowalk_polygon"), dtype='float')
+        self.nowalk_area = np.asarray(yc.get("nowalk_polygon"), dtype='float')
 
 

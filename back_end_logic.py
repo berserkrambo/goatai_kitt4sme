@@ -4,8 +4,8 @@ import torch
 
 from back_end.pose_resnet.detect import PoseNet
 
-from hbu_services.tracker.sort import Sort
-from hbu_services.anonymizator.anonymize import anonymize
+from back_end.tracker.sort import Sort
+from back_end.anonymizator.anonymize import anonymize
 from back_end.yalact.detect import Yalact
 
 

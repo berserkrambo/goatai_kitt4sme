@@ -10,11 +10,11 @@ from uri import URI
 
 TENANT = 'ai4sdw'
 ORION_EXTERNAL_BASE_URL = 'http://localhost:1026'
-ROUGHNATOR_INTERNAL_BASE_URL = 'http://rgh:8000'
+AI4SDW_INTERNAL_BASE_URL = 'http://ai4sdw:8000'
 QUANTUMLEAP_INTERNAL_BASE_URL = 'http://quantumleap:8668'
 QUANTUMLEAP_EXTERNAL_BASE_URL = 'http://localhost:8668'
-ROUGHNATOR_SUB = {
-    "description": "Notify roughnator of changes to any entity.",
+AI4SDW_SUB = {
+    "description": "Notify ai4sdw of changes to any entity.",
     "subject": {
         "entities": [
             {
@@ -24,7 +24,7 @@ ROUGHNATOR_SUB = {
     },
     "notification": {
         "http": {
-            "url": f"{ROUGHNATOR_INTERNAL_BASE_URL}/updates"
+            "url": f"{AI4SDW_INTERNAL_BASE_URL}/updates"
         }
     }
 }
@@ -62,14 +62,14 @@ class SubMan:
     def __init__(self):
         self._orion = orion_client()
 
-    def create_roughnator_sub(self):
-        self._orion.subscribe(ROUGHNATOR_SUB)
+    def create_ai4sdw_sub(self):
+        self._orion.subscribe(AI4SDW_SUB)
 
     def create_quantumleap_sub(self):
         self._orion.subscribe(QUANTUMLEAP_SUB)
 
     def create_subscriptions(self) -> List[dict]:
-        self.create_roughnator_sub()
+        self.create_ai4sdw_sub()
         self.create_quantumleap_sub()
         return self._orion.list_subscriptions()
 
@@ -98,7 +98,7 @@ def create_subscriptions():
     print(
         f"Creating catch-all {TENANT} entities subscription for QuantumLeap.")
     print(
-        f"Creating catch-all {TENANT} entities subscription for Roughnator.")
+        f"Creating catch-all {TENANT} entities subscription for AI4SDW.")
 
     man = SubMan()
     orion_subs = man.create_subscriptions()
