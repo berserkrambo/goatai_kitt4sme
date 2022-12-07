@@ -1,4 +1,4 @@
-from fipy.ngsi.entity import BaseEntity, FloatAttr, TextAttr, BoolAttr, ArrayAttr
+from fipy.ngsi.entity import BaseEntity, FloatAttr, TextAttr, ArrayAttr
 from kitt4sme_utils.fiware import orion_client
 from typing import Optional
 
@@ -27,8 +27,8 @@ class WorkerEntity(BaseEntity):
 
 class AI4SDW_services(BaseEntity):
     type = 'ai4sdw_service'
-    area_crossed: Optional[BoolAttr]
-    fall_pred: Optional[BoolAttr]
+    area_crossed: Optional[FloatAttr]
+    fall_pred: Optional[FloatAttr]
     risk_leve: Optional[FloatAttr]
 
 def send(cnf, data, frame):

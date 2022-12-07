@@ -10,7 +10,7 @@ from uri import URI
 
 TENANT = 'ai4sdw'
 ORION_EXTERNAL_BASE_URL = 'http://localhost:1026'
-AI4SDW_INTERNAL_BASE_URL = 'http://ai4sdw:8000'
+AI4SDW_INTERNAL_BASE_URL = 'http://ai4sdw:8082'
 QUANTUMLEAP_INTERNAL_BASE_URL = 'http://quantumleap:8668'
 QUANTUMLEAP_EXTERNAL_BASE_URL = 'http://localhost:8668'
 AI4SDW_SUB = {

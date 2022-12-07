@@ -47,7 +47,7 @@ services:
     networks:
       - simtests
     ports:
-      - "8000:8000"
+      - "8082:8082"
     environment:
       - ORION_BASE_URL=http://orion:1026
 
