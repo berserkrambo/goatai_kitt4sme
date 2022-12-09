@@ -57,7 +57,7 @@ def main(plot, compose):
                 cv2.polylines(image_bgr, [nowalk], True, [255,0,0])
                 cv2.imshow("", image_bgr)
 
-                ngsy.send(cnf=cnf, data=outputs[:], frame=image_bgr)
+                ngsy.send(cnf=cnf, data=outputs[:])
 
         k = cv2.waitKey(1)
 
