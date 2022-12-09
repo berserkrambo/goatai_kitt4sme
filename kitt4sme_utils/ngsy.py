@@ -1,4 +1,4 @@
-from fipy.ngsi.entity import BaseEntity, FloatAttr, TextAttr, ArrayAttr
+from fipy.ngsi.entity import BaseEntity, FloatAttr, TextAttr, ArrayAttr, BoolAttr
 from kitt4sme_utils.fiware import orion_client
 from typing import Optional
 
@@ -22,16 +22,15 @@ class WorkerEntity(BaseEntity):
     poses: Optional[ArrayAttr]
     src_points: Optional[ArrayAttr]
     dst_points: Optional[ArrayAttr]
-    service_type:Optional[ TextAttr]
-    # frame: ArrayAttr
+
 
 class AI4SDW_services(BaseEntity):
     type = 'ai4sdw_service'
-    area_crossed: Optional[FloatAttr]
-    fall_pred: Optional[FloatAttr]
+    area_crossed: Optional[BoolAttr]
+    fall_pred: Optional[BoolAttr]
     risk_leve: Optional[FloatAttr]
 
-def send(cnf, data, frame):
+def send(cnf, data):
     """
     :param cnf: configuration file from witch get info like about worker id and area
     :param data: list of objects, every one contains dets, track_id, mask, pose
@@ -58,7 +57,6 @@ def send(cnf, data, frame):
                     poses=ArrayAttr.new(poses),
                     e_b_t=ArrayAttr.new([cnf.eta, cnf.beta, cnf.tau]),
                     area_capacity=FloatAttr.new(cnf.area_capacity),
-                    service_type=TextAttr.new(cnf.service),
                     src_points=ArrayAttr.new(cnf.src_points.tolist()),
                     dst_points=ArrayAttr.new(cnf.dst_points.tolist())
                 )
