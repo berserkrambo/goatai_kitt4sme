@@ -62,7 +62,7 @@ class Conf(object):
         self.video_path = y.get('VIDEO_PATH', "")  # type: str
 
         dst_pts = y.get('DEFAULT_REAL_WORLD_POINTS')
-        self.dst_points = np.array(dst_pts) * self.grid_scale
+        self.dst_points = np.array(dst_pts).reshape(-1) * self.grid_scale
         self.src_points = None
         self.calib_file_path = Path(__file__).parent / "calib.yaml"
 
@@ -70,7 +70,7 @@ class Conf(object):
             LineSelector(self.video_path, out_calib_file=self.calib_file_path).run()
         calib_file = open(self.calib_file_path, 'r')
         yc = yaml.load(calib_file, Loader=yaml.Loader)
-        self.src_points = np.asarray(yc.get("homo_polygon"), dtype='float')
-        self.nowalk_area = np.asarray(yc.get("nowalk_polygon"), dtype='float')
+        self.src_points = np.asarray(yc.get("homo_polygon"), dtype='float').reshape(-1)
+        self.nowalk_area = np.asarray(yc.get("nowalk_polygon"), dtype='float').reshape(-1)
 
 
