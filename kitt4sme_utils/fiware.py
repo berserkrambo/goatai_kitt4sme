@@ -1,8 +1,6 @@
-from fipy.http.jclient import JsonClient
 from fipy.ngsi.headers import FiwareContext
 from fipy.ngsi.orion import OrionClient
-from fipy.ngsi.quantumleap import QuantumLeapClient
-from fipy.wait import wait_for_orion, wait_for_quantumleap
+from fipy.wait import wait_for_orion
 import json
 from typing import List, Optional
 from uri import URI
@@ -10,9 +8,11 @@ from uri import URI
 
 TENANT = 'ai4sdw'
 ORION_EXTERNAL_BASE_URL = 'http://localhost:1026'
+ORION_EXTERNAL_BASE_URL_CLUSTER = 'http://10.140.106.105/orion'
 AI4SDW_INTERNAL_BASE_URL = 'http://ai4sdw:8082'
+AI4SDW_INTERNAL_BASE_URL_CLUSTER = 'http://10.152.183.133:8000'
 QUANTUMLEAP_INTERNAL_BASE_URL = 'http://quantumleap:8668'
-QUANTUMLEAP_EXTERNAL_BASE_URL = 'http://localhost:8668'
+QUANTUMLEAP_INTERNAL_BASE_URL_CLUSTER = 'http://10.152.183.129:8668'
 AI4SDW_SUB = {
     "description": "Notify ai4sdw of changes to any entity.",
     "subject": {
@@ -25,6 +25,21 @@ AI4SDW_SUB = {
     "notification": {
         "http": {
             "url": f"{AI4SDW_INTERNAL_BASE_URL}/updates"
+        }
+    }
+}
+AI4SDW_SUB_CLUSTER = {
+    "description": "Notify ai4sdw of changes to any entity.",
+    "subject": {
+        "entities": [
+            {
+                "idPattern": ".*"
+            }
+        ]
+    },
+    "notification": {
+        "http": {
+            "url": f"{AI4SDW_INTERNAL_BASE_URL_CLUSTER}/updates"
         }
     }
 }
@@ -43,34 +58,52 @@ QUANTUMLEAP_SUB = {
         }
     }
 }
+QUANTUMLEAP_SUB_CLUSTER = {
+    "description": "Notify QuantumLeap of changes to any entity.",
+    "subject": {
+        "entities": [
+            {
+                "idPattern": ".*"
+            }
+        ]
+    },
+    "notification": {
+        "http": {
+            "url": f"{QUANTUMLEAP_INTERNAL_BASE_URL_CLUSTER}/v2/notify"
+        }
+    }
+}
 
 
-def orion_client(service_path: Optional[str] = None,
+def orion_client(env,
+        service_path: Optional[str] = None,
                  correlator: Optional[str] = None) -> OrionClient:
-    base_url = URI(ORION_EXTERNAL_BASE_URL)
+    if env == "docker":
+        base_url = URI(ORION_EXTERNAL_BASE_URL)
+    elif env == "cluster":
+        base_url = URI(ORION_EXTERNAL_BASE_URL_CLUSTER)
     ctx = FiwareContext(service=TENANT, service_path=service_path,
                         correlator=correlator)
     return OrionClient(base_url, ctx)
 
 
-def wait_on_orion():
-    wait_for_orion(orion_client())
+def wait_on_orion(env):
+    wait_for_orion(orion_client(env))
 
 
 class SubMan:
 
-    def __init__(self):
-        self._orion = orion_client()
-
-    def create_ai4sdw_sub(self):
-        self._orion.subscribe(AI4SDW_SUB)
-
-    def create_quantumleap_sub(self):
-        self._orion.subscribe(QUANTUMLEAP_SUB)
+    def __init__(self, env):
+        self.env = env
+        self._orion = orion_client(self.env)
 
     def create_subscriptions(self) -> List[dict]:
-        self.create_ai4sdw_sub()
-        self.create_quantumleap_sub()
+        if self.env == "docker":
+            self._orion.subscribe(AI4SDW_SUB)
+            self._orion.subscribe(QUANTUMLEAP_SUB)
+        elif self.env == "cluster":
+            self._orion.subscribe(AI4SDW_SUB_CLUSTER)
+            self._orion.subscribe(QUANTUMLEAP_SUB_CLUSTER)
         return self._orion.list_subscriptions()
 
 # NOTE. Subscriptions and FIWARE service path.
@@ -94,28 +127,16 @@ class SubMan:
 # e1 but not e2 nor e3.
 
 
-def create_subscriptions():
+def create_subscriptions(env):
     print(
         f"Creating catch-all {TENANT} entities subscription for QuantumLeap.")
     print(
         f"Creating catch-all {TENANT} entities subscription for AI4SDW.")
 
-    man = SubMan()
+    man = SubMan(env)
     orion_subs = man.create_subscriptions()
     formatted = json.dumps(orion_subs, indent=4)
 
     print("Current subscriptions in Orion:")
     print(formatted)
 
-
-def quantumleap_client() -> QuantumLeapClient:
-    base_url = URI(QUANTUMLEAP_EXTERNAL_BASE_URL)
-    ctx = FiwareContext(service=TENANT, service_path='/')  # (*)
-    return QuantumLeapClient(base_url, ctx)
-# NOTE. Orion handling of empty service path. We send Orion entities w/ no
-# service path in our tests. But when Orion notifies QL, it sends along a
-# root service path. So we add it to the context to make queries work.
-
-
-def wait_on_quantumleap():
-    wait_for_quantumleap(quantumleap_client())

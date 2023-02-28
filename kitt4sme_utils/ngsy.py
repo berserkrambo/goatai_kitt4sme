@@ -30,13 +30,13 @@ class AI4SDW_services(BaseEntity):
     fall_pred: Optional[FloatAttr]
     risk_leve: Optional[FloatAttr]
 
-def send(cnf, data):
+def send(cnf, data, env):
     """
     :param cnf: configuration file from witch get info like about worker id and area
     :param data: list of objects, every one contains dets, track_id, mask, pose
     :return:
     """
-    orion = orion_client()
+    orion = orion_client(env)
 
     boxes = []
     poses = []

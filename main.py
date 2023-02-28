@@ -18,31 +18,34 @@ docker = DockerCompose(__file__)
 def signal_handler(signal, frame):
     docker.stop()
 
-def bootstrap():
+def bootstrap(env):
     docker.build_images()
     docker.start()
 
-    wait_on_orion()
-
-    create_subscriptions()
-    print("sub created")
+    wait_on_orion(env)
 
 @click.command()
 @click.option('--plot', "-p", multiple=True, default=[""], help='multiple value: ["box", "mask", "pose", "pose_class", "track", "line"]')
-@click.option('--compose', is_flag=True)
-def main(plot, compose):
+@click.option('--env')
+def main(plot, env):
+    assert env in ["docker", "cluster"]
     signal.signal(signal.SIGINT, signal_handler)
 
     cnf = Conf("config")
     vidcap = VStreamReader(cnf.video_path)
     ai4sdw = AI4SDW()
 
-    if compose:
+    if env == "docker":
         docker.stop()
         try:
-            bootstrap()
+            bootstrap(env)
+            create_subscriptions(env)
+            print("sub created")
         except:
             docker.stop()
+    elif env == "cluster":
+        create_subscriptions(env)
+        print("sub created")
 
     nowalk = np.asarray(cnf.nowalk_area, dtype='int32').reshape((-1, 2))
     while True:
@@ -57,7 +60,8 @@ def main(plot, compose):
                 cv2.polylines(image_bgr, [nowalk], True, [255,0,0])
                 cv2.imshow("", image_bgr)
 
-                ngsy.send(cnf=cnf, data=outputs[:])
+            if env in ["cluster", "docker"]:
+                ngsy.send(cnf=cnf, data=outputs[:], env=env)
 
         k = cv2.waitKey(1)
 

@@ -42,6 +42,7 @@ services:
       - LOGLEVEL=DEBUG
 
   ai4sdw:
+#    image: ghcr.io/berserkrambo/k4sme.ai4sdw.ai:main
     build: /home/rgasparini/Desktop/k4sme.rgh
     image: k4sme/ai4sdw
     networks:
@@ -52,7 +53,7 @@ services:
       - ORION_BASE_URL=http://orion:1026
 
   dash:
-#    image: ghcr.io/berserkrambo/k4sme.dash:main
+#    image: ghcr.io/berserkrambo/k4sme.ai4sdw.dash:main
     build: /home/rgasparini/Desktop/k4sme.dash
     image: k4sme/dash
     networks:
