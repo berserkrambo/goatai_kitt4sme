@@ -15,8 +15,6 @@ class AI4SDW:
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         print(self.device)
 
-        # w_path = "back_end/yolox/yolox_m.pth"
-        # box_model = YoloX(device=device, weightsPath=w_path, num_classes=2, get_top2=False)
         self.box_model = Yalact(device=self.device)
         self.pose_model = PoseNet(device=self.device)
 
@@ -34,7 +32,6 @@ class AI4SDW:
 
         # set shape for tracker
         if len(pred_boxes) >= 1:
-            # image_bgr = box_model.drawo_pred(ids_p, class_p, pred_boxes, masks_p, image_bgr)
             out = []
             for i in range(len(pred_boxes)):
                 o_i = []
