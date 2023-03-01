@@ -60,8 +60,8 @@ def main(plot, env):
                 cv2.polylines(image_bgr, [nowalk], True, [255,0,0])
                 cv2.imshow("", image_bgr)
 
-            if env in ["cluster", "docker"]:
-                ngsy.send(cnf=cnf, data=outputs[:], env=env)
+                if env in ["cluster", "docker"]:
+                    ngsy.send(cnf=cnf, data=outputs[:], env=env)
 
         k = cv2.waitKey(1)
 
