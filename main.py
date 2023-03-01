@@ -25,7 +25,7 @@ def bootstrap(env):
     wait_on_orion(env)
 
 @click.command()
-@click.option('--plot', "-p", multiple=True, default=[""], help='multiple value: ["box", "mask", "pose", "pose_class", "track", "line"]')
+@click.option('--plot', "-p", multiple=True, default=[""], help='multiple value: ["box", "mask", "pose", "pose_c", "track"]')
 @click.option('--env')
 def main(plot, env):
     assert env in ["docker", "cluster"]

@@ -49,10 +49,10 @@ class LineSelector(object):
         self.stop = False
 
         self.texts = (
-            f'Usa il tasto sinistro del mouse per definire i punti per l\'omografia.',
-            f'Usa il tasto destro del mouse per definire almeno 4 punti del poligono per l\'area di divieto.',
-            f'Premi [INVIO] per confermare la selezione.',
-            f'Premi [F] resettare la selezione.'
+            f'[Left click] to choose the homography points',
+            f'[Right click] to choose the denied area points.',
+            f'[ENTER] to confirm the selection.',
+            f'[F] to reset.'
         )
         self.next_frame()
 
@@ -170,7 +170,7 @@ class LineSelector(object):
 
 
 def demo():
-    od = LineSelector(video_path='resources/sample_03.mp4', out_calib_file="conf/calib.yaml", win_name='GUI for points initialization').run()
+    od = LineSelector(video_path='resources/sample_03.mp4', out_calib_file="conf/calib.yaml", win_name='Points Initialization GUI').run()
     print(od)
 
 
