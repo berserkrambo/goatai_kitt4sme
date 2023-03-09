@@ -55,7 +55,7 @@ services:
     networks:
       - simtests
     ports:
-      - "8000:8000"
+      - "8501:8501"
 
 networks:
   simtests:
