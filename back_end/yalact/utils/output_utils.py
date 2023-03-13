@@ -4,7 +4,7 @@ from back_end.yalact.utils.box_utils import crop, box_iou, box_iou_numpy, crop_n
 import torch
 import numpy as np
 from back_end.yalact.config import COLORS
-from back_end.yalact.cython_nms import nms as cnms
+# from back_end.yalact.cython_nms import nms as cnms
 import pdb
 
 
@@ -81,46 +81,46 @@ def fast_nms_numpy(box_thre, coef_thre, class_thre, cfg):
     return box_nms, coef_nms, class_ids, class_nms
 
 
-def traditional_nms(boxes, masks, scores, cfg):
-    num_classes = scores.size(0)
-
-    idx_lst, cls_lst, scr_lst = [], [], []
-
-    # Multiplying by max_size is necessary because of how cnms computes its area and intersections
-    boxes = boxes * cfg.img_size
-
-    for _cls in range(num_classes):
-        cls_scores = scores[_cls, :]
-        conf_mask = cls_scores > cfg.nms_score_thre
-        idx = torch.arange(cls_scores.size(0), device=boxes.device)
-
-        cls_scores = cls_scores[conf_mask]
-        idx = idx[conf_mask]
-
-        if cls_scores.size(0) == 0:
-            continue
-
-        preds = torch.cat([boxes[conf_mask], cls_scores[:, None]], dim=1).cpu().numpy()
-        keep = cnms(preds, cfg.nms_iou_thre)
-        keep = torch.tensor(keep, device=boxes.device).long()
-
-        idx_lst.append(idx[keep])
-        cls_lst.append(keep * 0 + _cls)
-        scr_lst.append(cls_scores[keep])
-
-    idx = torch.cat(idx_lst, dim=0)
-    class_ids = torch.cat(cls_lst, dim=0)
-    scores = torch.cat(scr_lst, dim=0)
-
-    scores, idx2 = scores.sort(0, descending=True)
-    idx2 = idx2[:cfg.max_detections]
-    scores = scores[:cfg.max_detections]
-
-    idx = idx[idx2]
-    class_ids = class_ids[idx2]
-
-    # Undo the multiplication above
-    return boxes[idx] / cfg.img_size, masks[idx], class_ids, scores
+# def traditional_nms(boxes, masks, scores, cfg):
+#     num_classes = scores.size(0)
+#
+#     idx_lst, cls_lst, scr_lst = [], [], []
+#
+#     # Multiplying by max_size is necessary because of how cnms computes its area and intersections
+#     boxes = boxes * cfg.img_size
+#
+#     for _cls in range(num_classes):
+#         cls_scores = scores[_cls, :]
+#         conf_mask = cls_scores > cfg.nms_score_thre
+#         idx = torch.arange(cls_scores.size(0), device=boxes.device)
+#
+#         cls_scores = cls_scores[conf_mask]
+#         idx = idx[conf_mask]
+#
+#         if cls_scores.size(0) == 0:
+#             continue
+#
+#         preds = torch.cat([boxes[conf_mask], cls_scores[:, None]], dim=1).cpu().numpy()
+#         keep = cnms(preds, cfg.nms_iou_thre)
+#         keep = torch.tensor(keep, device=boxes.device).long()
+#
+#         idx_lst.append(idx[keep])
+#         cls_lst.append(keep * 0 + _cls)
+#         scr_lst.append(cls_scores[keep])
+#
+#     idx = torch.cat(idx_lst, dim=0)
+#     class_ids = torch.cat(cls_lst, dim=0)
+#     scores = torch.cat(scr_lst, dim=0)
+#
+#     scores, idx2 = scores.sort(0, descending=True)
+#     idx2 = idx2[:cfg.max_detections]
+#     scores = scores[:cfg.max_detections]
+#
+#     idx = idx[idx2]
+#     class_ids = class_ids[idx2]
+#
+#     # Undo the multiplication above
+#     return boxes[idx] / cfg.img_size, masks[idx], class_ids, scores
 
 
 def nms(class_pred, box_pred, coef_pred, proto_out, anchors, cfg):
@@ -155,10 +155,10 @@ def nms(class_pred, box_pred, coef_pred, proto_out, anchors, cfg):
     if class_thre.shape[1] == 0:
         return None, None, None, None, None
     else:
-        if not cfg.traditional_nms:
-            box_thre, coef_thre, class_ids, class_thre = fast_nms(box_thre, coef_thre, class_thre, cfg)
-        else:
-            box_thre, coef_thre, class_ids, class_thre = traditional_nms(box_thre, coef_thre, class_thre, cfg)
+        #if not cfg.traditional_nms:
+        box_thre, coef_thre, class_ids, class_thre = fast_nms(box_thre, coef_thre, class_thre, cfg)
+        #else:
+        #    box_thre, coef_thre, class_ids, class_thre = traditional_nms(box_thre, coef_thre, class_thre, cfg)
 
         return class_ids, class_thre, box_thre, coef_thre, proto_p
 

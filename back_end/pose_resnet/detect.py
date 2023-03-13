@@ -94,7 +94,7 @@ class PoseNet:
         self.pose_model = get_pose_net(self.cfg, is_train=False)
         self.pose_model.to(self.device)
 
-        self.pose_model.load_state_dict(torch.load(self.model_path / "model/res18_192x128_d64x3/model_best.pth"),
+        self.pose_model.load_state_dict(torch.load(self.model_path / "model/res18_192x128_d64x3/model_best.pth", map_location=self.device),
                                         strict=False)
         self.pose_model.eval()
 

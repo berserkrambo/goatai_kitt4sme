@@ -10,22 +10,27 @@ from back_end.yalact.utils.augmentations import val_aug
 from path import Path
 
 import numpy as np
-
+import gdown
 
 class Yalact:
 
     def __init__(self, device):
-        root_path = Path("back_end/yalact")
+        curr_path = Path(__file__).parent
+        w_path = curr_path / "weights"
 
-        # with open(root_path / "args_best_28.8_.pkl", "rb") as argsfile:
-        with open(root_path / "args_best_28.8_.pkl", "rb") as argsfile:
+        with open(curr_path / "args_best_28.8_.pkl", "rb") as argsfile:
             args = pickle.load(argsfile)
         self.cfg = get_config(args, mode='detect')
+
+        if not (curr_path/self.cfg.weight).exists():
+            w_path.makedirs_p()
+            link = "https://drive.google.com/file/d/1ujjwNLwPpWiPgguSwAhrpevIsmJsPADj/view?usp=sharing"
+            gdown.download(link, w_path, quiet=False)
 
         self.device = device
         self.model = Yolact(self.cfg)
 
-        self.model.load_state_dict(torch.load(root_path/self.cfg.weight), strict=False)
+        self.model.load_state_dict(torch.load(curr_path/self.cfg.weight, map_location=self.device), strict=False)
         self.model.to(device)
         self.model.eval()
 
