@@ -110,22 +110,18 @@ pip3 install https://github.com/c0c0n3/kitt4sme.fipy/archive/refs/tags/0.9.0.tar
 ```
 NOTE: If you have python 3.10+, fipy will raise the import exception `cannot import name 'ItemsView' from 'collections'`. This is because of the `uri` lib (last release was in November 2018).
 A workaround could be to edit:
-- lib/python3.10/site-packages/uri/bucket.py, change the collection imports to:
-    ```
+```
+- lib/python3.10/site-packages/uri/bucket.py, change the collection imports to:    
     from collections.abc import ItemsView, KeysView, MutableMapping, MutableSequence, ValuesView
     from collections import deque, namedtuple
-    ```
 
 - lib/python3.10/site-packages/uri/qso.py:
-    ```
     from collections.abc import Mapping, MutableMapping
     from collections import deque, namedtuple
-  ```
+
 - lib/python3.10/site-packages/uri/uri.py:
-    ```
   from collections.abc import Mapping, MutableMapping
-  ```
+  
 - lib/python3.10/site-packages/uri/part/uri.py
-    ```
   from collections.abc import MutableMapping
-  ```
+```
