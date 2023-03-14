@@ -24,8 +24,8 @@ class Yalact:
 
         if not (curr_path/self.cfg.weight).exists():
             w_path.makedirs_p()
-            link = "https://drive.google.com/file/d/1ujjwNLwPpWiPgguSwAhrpevIsmJsPADj/view?usp=sharing"
-            gdown.download(link, w_path, quiet=False)
+            link = "https://drive.google.com/uc?id=1ujjwNLwPpWiPgguSwAhrpevIsmJsPADj&export=download"
+            gdown.download(link, curr_path/self.cfg.weight, quiet=False)
 
         self.device = device
         self.model = Yolact(self.cfg)
