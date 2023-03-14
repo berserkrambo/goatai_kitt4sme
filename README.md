@@ -120,8 +120,8 @@ A workaround could be to edit:
     from collections import deque, namedtuple
 
 - lib/python3.10/site-packages/uri/uri.py:
-  from collections.abc import Mapping, MutableMapping
+    from collections.abc import Mapping, MutableMapping
   
 - lib/python3.10/site-packages/uri/part/uri.py
-  from collections.abc import MutableMapping
+    from collections.abc import MutableMapping
 ```
