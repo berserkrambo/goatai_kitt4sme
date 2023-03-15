@@ -43,6 +43,7 @@ def main(plot, env):
             print("sub created")
         except:
             docker.stop()
+            return
     elif env == "cluster":
         create_subscriptions(env)
         print("sub created")
